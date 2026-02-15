@@ -1,42 +1,54 @@
+from .irrigation import IrrigationAdvisor
+from .pest import PestControl
+from .harvest import HarvestAnalyzer
+from ml.risk_model import RiskModel
+from services.weather_service import WeatherService
+import datetime
 
-from datetime import date
-from services.weather_service import fetch_weather
-from db.crop_repo import get_crop_stage
-from db.market_repo import get_market_signal
-from engine.irrigation import irrigation
-from engine.pest import pest_risk
-from engine.harvest import harvest
-from ml.risk_model import compute_risk_score
-from ml.risk_utils import risk_label
+class DecisionEngine:
+    def __init__(self):
+        self.irrigation = IrrigationAdvisor()
+        self.pest = PestControl()
+        self.harvest = HarvestAnalyzer()
+        self.risk_model = RiskModel()
+        self.weather_service = WeatherService()
 
-def generate_decision(data):
-    # Existing logic
-    weather = fetch_weather(data.location)
-    days_since = (date.today() - data.sowing_date).days
-    
-    # NEW: Advanced ML-driven features
-    yield_prediction = compute_yield_estimate(data.crop, days_since, weather)
-    market_volatility = calculate_price_risk(data.crop)
-    soil_health_score = predict_soil_depletion(days_since)
+    def analyze(self, data: dict) -> dict:
+        try:
+            # 1. Fetch Context
+            city = data.get('location', 'Unknown')
+            weather_context = self.weather_service.get_current_weather(city)
 
-    return {
-        "crop": data.crop,
-        "location": data.location,
-        "days_since_sowing": days_since,
-        "stage": get_crop_stage(data.crop, days_since),
-        "weather": weather,
-        "analytics": {
-            "predicted_yield": f"{yield_prediction} tons/acre",
-            "market_trend": "Bullish" if market_volatility > 0.5 else "Stable",
-            "soil_depletion_index": soil_health_score
-        },
-        "risk_assessment": {
-            "score": compute_risk_score(weather["rainfall"], weather["humidity"], weather["temperature"]),
-            "level": risk_label(compute_risk_score(...))
-        },
-        "recommendations": {
-            "irrigation": irrigation(stage, weather["rainfall"]),
-            "pest": "High Risk: Apply Neem-based pesticide" if weather["humidity"] > 80 else "Normal",
-            "fertilizer": "Apply NPK 10-10-10" if days_since in [30, 60] else "Maintain soil moisture"
-        }
-    }
+            # 2. Run Modules
+            irrigation_plan = self.irrigation.analyze(data, weather_context)
+            pest_report = self.pest.analyze(data, weather_context)
+            harvest_plan = self.harvest.analyze(data, weather_context)
+
+            # 3. Run AI Models
+            risk_assessment = self.risk_model.predict_risk(data, weather_context)
+            yield_forecast = self.risk_model.predict_yield(data, risk_assessment['score'])
+
+            return {
+                "summary": self._generate_summary(risk_assessment, weather_context),
+                "risk_analysis": risk_assessment,
+                "yield_forecast": yield_forecast,
+                "irrigation": irrigation_plan,
+                "pest_control": pest_report,
+                "harvest": harvest_plan,
+                "weather_context": weather_context,
+                "timestamp": datetime.datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    def _generate_summary(self, risk, weather):
+        status = "Simulation" if weather.get('is_mock') else "Live"
+        msg = f"[{status}] {weather['city']}: {weather['condition']}."
+        
+        if risk['level'] == 'Critical':
+            msg += " CRITICAL ALERT: Immediate intervention needed."
+        elif risk['level'] == 'High':
+            msg += " WARNING: High risk factors detected."
+        else:
+            msg += " Conditions optimal."
+        return msg

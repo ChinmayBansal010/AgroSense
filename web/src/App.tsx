@@ -1,8 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthCard from "./components/AuthCard";
 import Dashboard from "./pages/Dashboard";
+import { auth } from "./auth/firebase";
+import "./App.css";
 
 export default function App() {
-  const [authed, setAuthed] = useState(false);
-  return authed ? <Dashboard /> : <AuthCard onAuth={() => setAuthed(true)} />;
+  const [user, setUser] = useState(auth.currentUser);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (loading) return <div className="loading-screen">Loading AgroSense...</div>;
+
+  return (
+    <div className="app-root">
+      {user ? <Dashboard /> : <AuthCard onAuth={() => {}} />}
+    </div>
+  );
 }

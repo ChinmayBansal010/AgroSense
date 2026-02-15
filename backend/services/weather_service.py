@@ -1,22 +1,54 @@
-
 import requests
-from config import WEATHER_API_KEY, WEATHER_URL, OFFLINE_MODE
+import logging
+from config import Config
 
-def fetch_weather(city: str):
-    if OFFLINE_MODE:
-        return {"rainfall": 3, "temperature": 27, "humidity": 60}
+logger = logging.getLogger(__name__)
 
-    params = {
-        "q": city,
-        "appid": WEATHER_API_KEY,
-        "units": "metric"
-    }
-    r = requests.get(WEATHER_URL, params=params)
-    r.raise_for_status()
-    data = r.json()["list"][0]
+class WeatherService:
+    def get_current_weather(self, city: str) -> dict:
+        # 1. Check Offline Mode
+        if Config.OFFLINE_MODE:
+            return self._get_default_weather(city, is_mock=True)
 
-    return {
-        "rainfall": data.get("rain", {}).get("3h", 0),
-        "temperature": data["main"]["temp"],
-        "humidity": data["main"]["humidity"]
-    }
+        # 2. Check API Key
+        api_key = Config.WEATHER_API_KEY
+        base_url = Config.WEATHER_URL
+        
+        if not api_key:
+            return self._get_default_weather(city, error="Missing API Key")
+
+        # 3. Fetch Live Data
+        try:
+            params = {
+                "q": city,
+                "appid": api_key,
+                "units": "metric"
+            }
+            response = requests.get(base_url, params=params, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+
+            return {
+                "temp": data["main"]["temp"],
+                "humidity": data["main"]["humidity"],
+                "condition": data["weather"][0]["main"],
+                "description": data["weather"][0]["description"],
+                "wind_speed": data["wind"]["speed"],
+                "city": data["name"],
+                "is_mock": False
+            }
+        except Exception as e:
+            logger.error(f"Weather API Error: {e}")
+            return self._get_default_weather(city, error=str(e))
+
+    def _get_default_weather(self, city="Unknown", is_mock=True, error=None):
+        return {
+            "temp": 24,
+            "humidity": 55,
+            "condition": "Clear",
+            "description": "Sunny (Simulated)",
+            "wind_speed": 12,
+            "city": city if city else "Demo City",
+            "is_mock": is_mock,
+            "error": error
+        }

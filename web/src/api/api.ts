@@ -1,11 +1,23 @@
-import axios from "axios";
+import { client } from "./client";
+import { DecisionFormData, DecisionResponse, MarketData, SensorData } from "../types/api";
 
-const API = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
-});
-
-export const setAuthToken = (token: string) => {
-  API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+export const postDecision = async (data: DecisionFormData): Promise<DecisionResponse> => {
+  const response = await client.post<DecisionResponse>("/analyze", data);
+  return response.data;
 };
 
-export default API;
+export const getHealth = async () => {
+  const response = await client.get("/");
+  return response.data;
+};
+
+// New Fetchers
+export const getMarketData = async (): Promise<MarketData> => {
+  const response = await client.get<MarketData>("/market");
+  return response.data;
+};
+
+export const getSensorData = async (): Promise<SensorData> => {
+  const response = await client.get<SensorData>("/sensors");
+  return response.data;
+};

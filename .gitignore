@@ -2,3 +2,5 @@ backend/.env
 web/.env
 .venv
 backend/firebase/firebase_key.json
+
+backend/**__pycache__**

@@ -1,11 +1,17 @@
 import axios from "axios";
 import { auth } from "../auth/firebase";
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:5000";
+
+export const client = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-api.interceptors.request.use(async (config) => {
+// Automatic Token Injection
+client.interceptors.request.use(async (config) => {
   const user = auth.currentUser;
   if (user) {
     const token = await user.getIdToken();
@@ -13,5 +19,3 @@ api.interceptors.request.use(async (config) => {
   }
   return config;
 });
-
-export default api;
