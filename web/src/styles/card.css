@@ -1,0 +1,11 @@
+.card {
+  background: white;
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+.card ul {
+  margin-top: 12px;
+}
