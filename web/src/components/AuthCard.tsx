@@ -4,7 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from "firebase/auth";
-import { attachToken } from "../api/client";
+import attachToken from "../api/client";
 import "../styles/auth.css";
 
 interface Props {

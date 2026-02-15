@@ -23,3 +23,17 @@ def update_market(data: MarketUpdateRequest, user=Depends(firebase_auth)):
     admin_only(user)
     add_market_price(data.crop, data.price)
     return {"status": "updated"}
+
+@app.get("/alerts")
+def get_alerts(user=Depends(firebase_auth)):
+    history = get_history(user["uid"])
+    alerts = []
+    for record in history:
+        # If rainfall predicted > 50mm in last record, trigger alert
+        if record.get("weather", {}).get("rainfall", 0) > 50:
+            alerts.append({
+                "type": "Flood Warning",
+                "crop": record["crop"],
+                "message": f"Heavy rain detected in {record['location']}. Postpone irrigation."
+            })
+    return alerts
